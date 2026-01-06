@@ -24,7 +24,6 @@ class OutputHelper:
 
 @backoff.on_exception(backoff.expo, RateLimitError)
 def get_completion_from_gpt(messages, model_name, max_tokens, api_key, temperature, base_url):
-    # 回退逻辑：允许无 API Key（用于本地 vLLM OpenAI 兼容服务）
     effective_api_key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY", "EMPTY")
     if base_url:
         client = OpenAI(api_key=effective_api_key, base_url=base_url)
@@ -44,10 +43,8 @@ def get_completion_from_gpt(messages, model_name, max_tokens, api_key, temperatu
 class OpenAILLM:
     def __init__(self, model_name, api_key) -> None:
         self.model_name = model_name
-        # 允许 api_key 为空；若为空，内部会使用环境变量或 'EMPTY'
         self.api_key = api_key
         self.n_threads=8
-        # 支持通过环境变量配置本地 OpenAI 兼容服务
         self.base_url = os.environ.get("OPENAI_BASE_URL", "http://localhost:8001/v1")
     
     def generate(self, prompts, sampling_param):
@@ -90,6 +87,5 @@ class APILLM:
         response.raise_for_status()
         response_json = response.json()
         
-        # 假设 API 返回的是一个列表，每个元素是一个生成的文本
         results = [OutputHelper(item) for item in response_json]
         return results
